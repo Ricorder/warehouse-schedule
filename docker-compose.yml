@@ -1,0 +1,67 @@
+# Полный запуск приложения в контейнерах: docker compose up --build
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: schedule
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U admin -d schedule']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Одноразовая задача: накатывает миграции и засевает демо-данные.
+  migrate:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile.migrate
+    environment:
+      DB_URL: postgresql://admin:root@postgres:5432/schedule
+    command: sh -c "pnpm db:migrate && pnpm db:seed"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+    restart: unless-stopped
+    ports:
+      - '8000:8000'
+    environment:
+      API_PORT: 8000
+      CLIENT: http://localhost:3000
+      DB_URL: postgresql://admin:root@postgres:5432/schedule
+      JWT_SECRET: change_me_in_production
+      JWT_REFRESH_SECRET: change_me_in_production_too
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: .
+      dockerfile: ./apps/web/Dockerfile
+      args:
+        # Браузер обращается к API напрямую, поэтому адрес — с точки зрения хоста.
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      PORT: 3000
+      HOSTNAME: 0.0.0.0
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

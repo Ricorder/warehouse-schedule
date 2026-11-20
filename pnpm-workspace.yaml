@@ -1,3 +1,12 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# bcrypt содержит нативный модуль — без этого pnpm пропустит его сборку.
+onlyBuiltDependencies:
+  - "@nestjs/core"
+  - "@parcel/watcher"
+  - bcrypt
+  - esbuild
+  - sharp
+  - unrs-resolver
