@@ -1,124 +1,184 @@
-# Turborepo starter
+# Модуль учёта рабочего времени сотрудников склада
 
-This is a community-maintained example. If you experience a problem, please submit a pull request with a fix. GitHub Issues will be closed.
+Учёт занятости сотрудников на станках и столах по сменам: старт и остановка работы,
+паузы с обязательным комментарием, автоматический подсчёт продуктивного времени
+и журнал всех действий.
 
-## Using this example
+Реализация тестового задания «Модуль учета рабочего времени сотрудников склада».
 
-Run the following command:
+---
 
-```bash
-npx create-turbo@latest -e with-nestjs
-```
+## Быстрый старт
 
-## What's inside?
-
-This Turborepo includes the following packages & apps:
-
-### Apps and Packages
-
-```shell
-.
-├── apps
-│   ├── api                       # NestJS app (https://nestjs.com).
-│   └── web                       # Next.js app (https://nextjs.org).
-└── packages
-    ├── @repo/api                 # Shared `NestJS` resources.
-    ├── @repo/eslint-config       # `eslint` configurations (includes `prettier`)
-    ├── @repo/jest-config         # `jest` configurations
-    ├── @repo/typescript-config   # `tsconfig.json`s used throughout the monorepo
-    └── @repo/ui                  # Shareable stub React component library.
-```
-
-Each package and application are mostly written in [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This `Turborepo` has some additional tools already set for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type-safety
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-- [Jest](https://prettier.io) & [Playwright](https://playwright.dev/) for testing
-
-### Commands
-
-This `Turborepo` already configured useful commands for all your apps and packages.
-
-#### Build
+Нужны Node.js ≥ 18, pnpm 10 и Docker (только для Postgres).
 
 ```bash
-# Will build all the app & packages with the supported `build` script.
-pnpm run build
-
-# ℹ️ If you plan to only build apps individually,
-# Please make sure you've built the packages first.
+pnpm install && pnpm setup && pnpm dev
 ```
 
-#### Develop
+`pnpm setup` поднимает Postgres в контейнере, накатывает миграции и засевает демо-данные.
+После этого:
+
+- фронтенд — http://localhost:3000
+- API (tRPC) — http://localhost:8000/trpc
+
+### Демо-доступы
+
+| Роль | Email | Пароль |
+| --- | --- | --- |
+| Администратор | `admin@warehouse.local` | `password123` |
+| Сборщик/фасовщик | `klavdiya@warehouse.local` | `password123` |
+
+Пароль одинаковый у всех восьми засеянных сотрудников. Расписание засевается
+на **текущую** неделю, поэтому админка открывается заполненной, а на сегодняшний
+день специально созданы смены во всех трёх состояниях — ▸ в работе, ⏸ пауза, ■ остановлена.
+
+### Отдельные команды
 
 ```bash
-# Will run the development server for all the app & packages with the supported `dev` script.
-pnpm run dev
+pnpm db:up       # только Postgres в Docker
+pnpm db:migrate  # применить миграции
+pnpm db:seed     # пересоздать демо-данные
+pnpm test        # юнит-тесты бизнес-логики
+pnpm lint        # линтеры
+pnpm build       # продакшен-сборка
 ```
 
-#### test
+### Запуск целиком в Docker
 
 ```bash
-# Will launch a test suites for all the app & packages with the supported `test` script.
-pnpm run test
-
-# You can launch e2e testes with `test:e2e`
-pnpm run test:e2e
-
-# See `@repo/jest-config` to customize the behavior.
+docker compose up --build
 ```
 
-#### Lint
+Поднимает Postgres, применяет миграции с посевом и запускает оба приложения
+на тех же портах 3000 и 8000.
+
+---
+
+## Что реализовано
+
+### Интерфейс сотрудника (`/worker`)
+
+- Выбор станка или стола и смены (день/ночь) при старте работы
+- Кнопки «Начать работу», «Пауза», «Стоп смены», «Добавить комментарий»
+- Пауза только с комментарием: три типовые причины из ТЗ (обед / курить / вызвали помочь)
+  плюс произвольная
+- Таймер идёт посекундно и во время паузы останавливается
+- Отображение времени в работе, времени пауз и итога
+- История действий за смену и последний комментарий
+- Своя история смен за период — **только для просмотра** (`/worker/history`)
+
+### Интерфейс администратора (`/admin`)
+
+- Недельная сетка: строки — «станок / смена», колонки — даты, переключение недель
+- В ячейке до 6 сотрудников со статусом ▸ / ⏸ / ■ / ○ и отработанным временем
+- Кнопка `(+) ▼` с выпадающим списком сотрудников; уже занятые в этой смене
+  **подсвечены жёлтым** и недоступны для выбора
+- Фильтры: неделя, станки/столы, смена, фамилия, «только занятые»
+- Подсчёт общего времени работы каждого сотрудника за период
+- Корректировка времени смены (кнопка ✎) с обязательной фиксацией в журнале
+- Журнал действий с фильтрами по сотруднику и датам (`/admin/log`)
+
+### Бизнес-правила
+
+| Правило из ТЗ | Где реализовано |
+| --- | --- |
+| Максимум 6 сотрудников на станке в смену | `shift-assignment.service.ts` → `createAssignment` |
+| Нельзя назначить на два станка в одну смену | уникальный индекс `(employee, date, shift)` + проверка в сервисе |
+| Пауза только с комментарием | `startPauseInput.reason.min(1)` |
+| Продуктивная пауза не вычитается из рабочего времени | `common/time.util.ts` → `calculateSessionDurations` |
+| История сотруднику доступна только для просмотра | у сотрудника нет мутаций правки времени |
+| Правки администратора сохраняются | действие `admin_edit` со старым и новым значением |
+| Все действия фиксируются в журнале | таблица `activity_logs` |
+
+---
+
+## Стек и архитектура
+
+**Монорепозиторий** на Turborepo + pnpm workspaces.
+
+```
+apps/
+  api/   NestJS 11 (Fastify) + tRPC + Drizzle ORM + PostgreSQL
+  web/   Next.js 16 (App Router, React 19) + TanStack Query + SCSS-модули
+packages/
+  eslint-config/       общие правила линтера
+  typescript-config/   общие tsconfig
+```
+
+### Сквозная типизация
+
+Бэкенд описывает процедуры Zod-схемами, а `nestjs-trpc` при старте генерирует
+файл роутера в `apps/web/src/shared/api/trpc/@generated/server.ts`.
+Фронтенд импортирует из него типы, поэтому расхождение контрактов
+ловится компилятором, а не в рантайме. Файл генерируется автоматически —
+править его вручную не нужно.
+
+### Структура фронтенда
+
+Feature-Sliced Design: `shared` → `entities` → `features` → `widgets` → `views`.
+Слой страниц назван `views`, потому что `src/pages` в Next.js
+зарезервирован под Pages Router.
+
+### Модель данных
+
+```
+employees ──┐
+            ├─< shift_assignments >── machines
+            │        │
+            │        └──< work_sessions ──< pauses
+            │                  │
+            └──────────────< activity_logs
+```
+
+- `shift_assignments` — кто на каком станке в какую смену; здесь же ограничения ТЗ
+- `work_sessions` — фактические старт и стоп; на одно назначение их может быть несколько
+- `pauses` — с флагом `is_productive` («вызвали помочь»)
+- `activity_logs` — журнал: кто, над кем, что и когда; детали хранятся JSON-строкой,
+  человекочитаемое описание собирается на сервере
+
+### Расчёт времени
+
+Ядро логики — `apps/api/src/common/time.util.ts`:
+
+```
+итого   = стоп (или сейчас) − старт
+паузы   = сумма непродуктивных пауз, обрезанных границами смены
+в работе = итого − паузы
+```
+
+Продуктивные паузы считаются отдельно и остаются в рабочем времени.
+Незакрытые паузы тянутся до конца смены, интервалы за её пределами обрезаются,
+отрицательные значения невозможны. Всё это покрыто тестами.
+
+Клиент дублирует расчёт (`shared/lib/durations.ts`), чтобы таймер шёл посекундно
+без запросов к серверу; расхождение часов компенсируется полем `serverTime`.
+
+---
+
+## Принятые решения
+
+- **Авторизация** — JWT в localStorage, единое хранилище токена
+  (`shared/lib/auth-token.ts`) читается и React-компонентами, и tRPC-клиентом,
+  поэтому вход применяется без перезагрузки страницы.
+- **Роль при регистрации** выбирается пользователем. В реальной системе так делать
+  нельзя, здесь это оставлено сознательно, чтобы проверяющий мог завести обе учётки
+  без доступа к базе.
+- **Права** проверяются на сервере в каждой процедуре (`requireUser` / `requireAdmin`).
+  Гварды на фронте — только для навигации, не как защита.
+- **Владелец смены**: паузу, стоп и комментарий может ставить только сам сотрудник
+  либо администратор — чужую смену тронуть нельзя.
+- **Часовой пояс** — локальный пояс сервера. Для одного склада этого достаточно;
+  под несколько площадок понадобилось бы хранить пояс у станка.
+- **Порт Postgres в разработке — 5433**, потому что 5432 часто занят локально
+  установленным сервером.
+
+## Тесты
 
 ```bash
-# Will lint all the app & packages with the supported `lint` script.
-# See `@repo/eslint-config` to customize the behavior.
-pnpm run lint
+pnpm test
 ```
 
-#### Format
-
-```bash
-# Will format all the supported `.ts,.js,json,.tsx,.jsx` files.
-# See `@repo/eslint-config/prettier-base.js` to customize the behavior.
-pnpm format
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```bash
-npx turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```bash
-npx turbo link
-```
-
-## Useful Links
-
-This example take some inspiration the [with-nextjs](https://github.com/vercel/turborepo/tree/main/examples/with-nextjs) `Turbo` example and [01-cats-app](https://github.com/nestjs/nest/tree/master/sample/01-cats-app) `NestJs` sample.
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+58 юнит-тестов на бизнес-логику: расчёт времени с паузами и без, границы интервалов,
+статусы смены, ограничение в 6 человек, запрет двух станков в одну смену,
+права на управление чужой сменой, журналирование действий.
