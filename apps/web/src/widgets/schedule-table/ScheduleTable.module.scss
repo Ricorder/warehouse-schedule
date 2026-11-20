@@ -1,0 +1,182 @@
+.wrapper {
+	overflow-x: auto;
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+}
+
+.table {
+	width: 100%;
+	border-collapse: separate;
+	border-spacing: 0;
+	font-size: 14px;
+}
+
+.table th,
+.table td {
+	padding: 8px 10px;
+	text-align: left;
+	vertical-align: top;
+	border-right: 1px solid var(--border);
+	border-bottom: 1px solid var(--border);
+}
+
+.table th:last-child,
+.table td:last-child {
+	border-right: 0;
+}
+
+.headCell {
+	position: sticky;
+	z-index: 2;
+	top: 0;
+	font-weight: 600;
+	white-space: nowrap;
+	background: var(--surface-muted);
+}
+
+.headToday {
+	color: var(--accent);
+	background: var(--accent-soft);
+}
+
+.weekday {
+	display: block;
+	font-size: 12px;
+	font-weight: 400;
+	color: var(--text-subtle);
+	text-transform: capitalize;
+}
+
+/* Первая колонка «станок / смена» закреплена при горизонтальной прокрутке. */
+.rowHead {
+	position: sticky;
+	z-index: 1;
+	left: 0;
+	min-width: 170px;
+	background: var(--surface-muted);
+}
+
+.rowHeadTop {
+	z-index: 3;
+}
+
+.machineName {
+	font-weight: 600;
+}
+
+.shiftName {
+	font-size: 12px;
+	color: var(--text-subtle);
+}
+
+.cell {
+	min-width: 168px;
+	background: var(--surface);
+}
+
+.cellToday {
+	background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface));
+}
+
+.entries {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 6px;
+}
+
+.entry {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	justify-content: space-between;
+	padding: 4px 7px;
+	background: var(--surface-muted);
+	border: 1px solid var(--border);
+	border-radius: var(--radius-sm);
+}
+
+.entryName {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	overflow: hidden;
+	font-size: 13px;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.entryActions {
+	display: flex;
+	gap: 2px;
+	flex-shrink: 0;
+}
+
+.iconButton {
+	padding: 1px 5px;
+	font-size: 12px;
+	line-height: 1.4;
+	color: var(--text-subtle);
+	background: transparent;
+	border: 0;
+	border-radius: 4px;
+	cursor: pointer;
+
+	&:hover:not(:disabled) {
+		color: var(--accent);
+		background: var(--surface-hover);
+	}
+
+	&:disabled {
+		cursor: not-allowed;
+		opacity: 0.35;
+	}
+}
+
+.iconRemove:hover:not(:disabled) {
+	color: var(--danger);
+	background: var(--danger-soft);
+}
+
+.statusIcon {
+	flex-shrink: 0;
+	font-size: 12px;
+}
+
+.statusWorking {
+	color: var(--success);
+}
+
+.statusPaused {
+	color: var(--warning);
+}
+
+.statusStopped {
+	color: var(--text-subtle);
+}
+
+.statusIdle {
+	color: var(--text-subtle);
+	opacity: 0.5;
+}
+
+.worked {
+	font-family: var(--font-mono);
+	font-size: 12px;
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+.legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	font-size: 13px;
+	color: var(--text-muted);
+}
+
+.legendItem {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+}

@@ -1,0 +1,59 @@
+.table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+}
+
+.table th,
+.table td {
+	padding: 9px 12px;
+	text-align: left;
+	vertical-align: top;
+	border-bottom: 1px solid var(--border);
+}
+
+.table th {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-subtle);
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.time {
+	font-family: var(--font-mono);
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+.actor {
+	white-space: nowrap;
+}
+
+.badge {
+	display: inline-block;
+	padding: 2px 8px;
+	font-size: 12px;
+	white-space: nowrap;
+	border-radius: 999px;
+}
+
+.badgeWork {
+	color: var(--success);
+	background: var(--success-soft);
+}
+
+.badgePause {
+	color: var(--warning);
+	background: var(--warning-soft);
+}
+
+.badgeAdmin {
+	color: var(--accent);
+	background: var(--accent-soft);
+}
+
+.badgeNeutral {
+	color: var(--text-muted);
+	background: var(--surface-muted);
+}

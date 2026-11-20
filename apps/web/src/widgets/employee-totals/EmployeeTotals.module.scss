@@ -1,0 +1,35 @@
+.table {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 14px;
+}
+
+.table th,
+.table td {
+	padding: 8px 12px;
+	text-align: left;
+	border-bottom: 1px solid var(--border);
+}
+
+.table th {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-subtle);
+	text-transform: uppercase;
+	letter-spacing: 0.03em;
+}
+
+.table tbody tr:last-child td {
+	border-bottom: 0;
+}
+
+.numeric {
+	font-family: var(--font-mono);
+	font-variant-numeric: tabular-nums;
+	text-align: right;
+}
+
+.work {
+	font-weight: 500;
+	color: var(--accent);
+}

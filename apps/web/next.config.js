@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  allowedDevOrigins: ['http://localhost:3000'],
+	// Самодостаточная сборка для Docker-образа.
+	output: 'standalone',
 };
 
 export default nextConfig;
